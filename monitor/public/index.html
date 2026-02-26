@@ -3,599 +3,99 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Claude Code Monitor</title>
+<title>Claude Code Studio — API</title>
 <style>
-  :root {
-    --bg: #0d1117;
-    --surface: #161b22;
-    --surface-2: #1c2129;
-    --border: #30363d;
-    --text: #e6edf3;
-    --text-dim: #8b949e;
-    --accent: #c084fc;
-    --accent-dim: #7c3aed;
-    --green: #3fb950;
-    --green-dim: #1a7f37;
-    --blue: #58a6ff;
-    --orange: #d29922;
-    --red: #f85149;
-    --cyan: #39d3ee;
-    --radius: 8px;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace;
-    background: var(--bg);
-    color: var(--text);
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
-  /* ---- Header ---- */
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 20px;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface);
-    flex-shrink: 0;
-  }
-  header .logo {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 14px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-  }
-  header .logo .dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--red);
-    transition: background 0.3s;
-  }
-  header .logo .dot.connected { background: var(--green); }
-  header .actions { display: flex; gap: 8px; }
-  .btn {
-    padding: 6px 14px;
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
-    background: var(--surface-2);
-    color: var(--text);
-    font-family: inherit;
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .btn:hover { border-color: var(--accent); color: var(--accent); }
-  .btn.primary { background: var(--accent-dim); border-color: var(--accent-dim); color: #fff; }
-  .btn.primary:hover { background: var(--accent); }
-
-  /* ---- Main layout ---- */
-  main {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-  }
-
-  /* ---- Sidebar: stats ---- */
-  .sidebar {
-    width: 260px;
-    border-right: 1px solid var(--border);
-    background: var(--surface);
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
-    overflow-y: auto;
-  }
-  .sidebar h3 {
-    padding: 14px 16px 8px;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--text-dim);
-  }
-  .stat-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 6px;
-    padding: 0 12px 12px;
-  }
-  .stat-card {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 10px;
-    text-align: center;
-  }
-  .stat-card .value {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--accent);
-  }
-  .stat-card .label {
-    font-size: 10px;
-    color: var(--text-dim);
-    margin-top: 2px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  /* Tool breakdown */
-  .tool-list {
-    padding: 0 12px 12px;
-    list-style: none;
-  }
-  .tool-list li {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6px 10px;
-    font-size: 12px;
-    border-radius: 4px;
-    margin-bottom: 2px;
-  }
-  .tool-list li:hover { background: var(--surface-2); }
-  .tool-list .tool-name { color: var(--cyan); }
-  .tool-list .tool-count {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    padding: 1px 8px;
-    border-radius: 10px;
-    font-size: 11px;
-    color: var(--text-dim);
-  }
-
-  /* ---- Event feed ---- */
-  .feed {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-  .feed-header {
-    padding: 10px 20px;
-    border-bottom: 1px solid var(--border);
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--text-dim);
-    background: var(--surface);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-shrink: 0;
-  }
-  .feed-scroll {
-    flex: 1;
-    overflow-y: auto;
-    padding: 12px 20px;
-    scroll-behavior: smooth;
-  }
-
-  /* Event cards */
-  .event-card {
-    margin-bottom: 8px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-    animation: slideIn 0.2s ease-out;
-  }
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .event-card .card-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    background: var(--surface);
-    font-size: 12px;
-  }
-  .event-card .card-header .badge {
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  .badge-tool_use  { background: var(--accent-dim); color: #e0d0ff; }
-  .badge-result    { background: var(--green-dim); color: #a0f0b0; }
-  .badge-text      { background: #1c2d40; color: var(--blue); }
-  .badge-system    { background: #2d2200; color: var(--orange); }
-  .badge-error     { background: #3d1010; color: var(--red); }
-  .badge-session   { background: #102030; color: var(--cyan); }
-
-  .event-card .card-header .ts {
-    margin-left: auto;
-    color: var(--text-dim);
-    font-size: 10px;
-  }
-  .event-card .card-body {
-    padding: 10px 12px;
-    font-size: 12px;
-    line-height: 1.6;
-    color: var(--text-dim);
-    max-height: 300px;
-    overflow-y: auto;
-  }
-  .event-card .card-body pre {
-    white-space: pre-wrap;
-    word-break: break-word;
-    font-family: inherit;
-  }
-  .event-card .card-body .tool-name-display {
-    color: var(--cyan);
-    font-weight: 600;
-  }
-  .event-card .card-body .input-label {
-    color: var(--text-dim);
-    font-size: 11px;
-    margin-top: 6px;
-    margin-bottom: 2px;
-  }
-
-  /* ---- Timeline markers ---- */
-  .timeline-marker {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 6px 0;
-    font-size: 11px;
-    color: var(--text-dim);
-  }
-  .timeline-marker::before, .timeline-marker::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
-
-  /* ---- Prompt input ---- */
-  .prompt-bar {
-    display: flex;
-    gap: 8px;
-    padding: 12px 20px;
-    border-top: 1px solid var(--border);
-    background: var(--surface);
-    flex-shrink: 0;
-  }
-  .prompt-bar input {
-    flex: 1;
-    padding: 10px 14px;
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
-    background: var(--bg);
-    color: var(--text);
-    font-family: inherit;
-    font-size: 13px;
-    outline: none;
-    transition: border-color 0.15s;
-  }
-  .prompt-bar input:focus { border-color: var(--accent); }
-  .prompt-bar input::placeholder { color: #484f58; }
-
-  /* ---- Empty state ---- */
-  .empty-state {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    color: var(--text-dim);
-  }
-  .empty-state .icon { font-size: 48px; opacity: 0.3; }
-  .empty-state p { font-size: 13px; }
-
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  body { font-family: system-ui, sans-serif; background: #0d1117; color: #e6edf3; padding: 40px; max-width: 800px; margin: 0 auto; }
+  h1 { font-size: 24px; margin-bottom: 8px; }
+  p { color: #8b949e; margin-bottom: 24px; }
+  h2 { font-size: 16px; margin: 24px 0 8px; color: #c084fc; }
+  .endpoint { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px 16px; margin-bottom: 8px; font-family: 'SF Mono', monospace; font-size: 13px; }
+  .method { font-weight: 700; margin-right: 8px; }
+  .method.get { color: #3fb950; }
+  .method.post { color: #58a6ff; }
+  .method.put { color: #d29922; }
+  .method.delete { color: #f85149; }
+  .desc { color: #8b949e; font-family: system-ui; margin-top: 4px; font-size: 12px; }
+  .ws { background: #7c3aed22; border-color: #7c3aed44; }
+  code { background: #1c2129; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
 </style>
 </head>
 <body>
+<h1>Claude Code Studio API</h1>
+<p>Backend bridge for connecting a frontend (Bolt, custom, etc.) to Claude Code. All real-time events stream over WebSocket.</p>
 
-<header>
-  <div class="logo">
-    <div class="dot" id="connDot"></div>
-    <span>CLAUDE CODE MONITOR</span>
-  </div>
-  <div class="actions">
-    <button class="btn" id="demoBtn">Run Demo</button>
-    <button class="btn" id="clearBtn">Clear</button>
-  </div>
-</header>
+<h2>WebSocket</h2>
+<div class="endpoint ws">
+  <span class="method post">WS</span> /ws
+  <div class="desc">Real-time event stream. Receives translated Claude Code events: <code>fe_init</code>, <code>fe_assistant_text</code>, <code>fe_tool_call</code>, <code>fe_tool_result</code>, <code>fe_file_changed</code>, <code>fe_result</code>, <code>session_start</code>, <code>session_end</code></div>
+</div>
 
-<main>
-  <aside class="sidebar">
-    <h3>Session</h3>
-    <div class="stat-grid">
-      <div class="stat-card">
-        <div class="value" id="statTools">0</div>
-        <div class="label">Tool Calls</div>
-      </div>
-      <div class="stat-card">
-        <div class="value" id="statTurns">0</div>
-        <div class="label">Turns</div>
-      </div>
-      <div class="stat-card">
-        <div class="value" id="statCost">$0</div>
-        <div class="label">Cost</div>
-      </div>
-      <div class="stat-card">
-        <div class="value" id="statTime">0s</div>
-        <div class="label">Elapsed</div>
-      </div>
-    </div>
+<h2>Sessions</h2>
+<div class="endpoint">
+  <span class="method post">POST</span> /api/session
+  <div class="desc">Start a Claude Code session. Body: <code>{ "prompt": "...", "cwd": "..." }</code>. Returns <code>{ "sessionId": "..." }</code></div>
+</div>
+<div class="endpoint">
+  <span class="method get">GET</span> /api/sessions
+  <div class="desc">List active sessions</div>
+</div>
+<div class="endpoint">
+  <span class="method delete">DELETE</span> /api/session/:id
+  <div class="desc">Kill a running session</div>
+</div>
 
-    <h3>Tool Breakdown</h3>
-    <ul class="tool-list" id="toolBreakdown"></ul>
+<h2>Files</h2>
+<div class="endpoint">
+  <span class="method get">GET</span> /api/files
+  <div class="desc">Get file tree of the project directory. Query: <code>?path=/custom/dir</code></div>
+</div>
+<div class="endpoint">
+  <span class="method get">GET</span> /api/file?path=src/App.tsx
+  <div class="desc">Read file contents. Returns <code>{ "path": "...", "content": "..." }</code></div>
+</div>
+<div class="endpoint">
+  <span class="method put">PUT</span> /api/file
+  <div class="desc">Write a file. Body: <code>{ "path": "src/App.tsx", "content": "..." }</code></div>
+</div>
+<div class="endpoint">
+  <span class="method delete">DELETE</span> /api/file?path=src/old.ts
+  <div class="desc">Delete a file</div>
+</div>
 
-    <h3>Model</h3>
-    <div style="padding: 0 12px 12px;">
-      <div id="modelName" style="font-size: 12px; color: var(--cyan);">--</div>
-    </div>
+<h2>Project</h2>
+<div class="endpoint">
+  <span class="method get">GET</span> /api/project
+  <div class="desc">Get project directory info</div>
+</div>
 
-    <h3>Working Dir</h3>
-    <div style="padding: 0 12px 12px;">
-      <div id="cwdDisplay" style="font-size: 11px; color: var(--text-dim); word-break: break-all;">--</div>
-    </div>
-  </aside>
+<h2>Demo</h2>
+<div class="endpoint">
+  <span class="method post">POST</span> /api/demo
+  <div class="desc">Run a fake session that replays tool calls for testing without a real Claude binary</div>
+</div>
 
-  <section class="feed">
-    <div class="feed-header">
-      <span>Event Feed</span>
-      <span id="eventCount">0 events</span>
-    </div>
-    <div class="feed-scroll" id="feedScroll">
-      <div class="empty-state" id="emptyState">
-        <div class="icon">&#9671;</div>
-        <p>No events yet. Send a prompt or run the demo.</p>
-      </div>
-    </div>
-    <div class="prompt-bar">
-      <input type="text" id="promptInput" placeholder="Enter a prompt for Claude Code..." />
-      <button class="btn primary" id="sendBtn">Send</button>
-    </div>
-  </section>
-</main>
+<h2>WebSocket Event Types</h2>
+<div class="endpoint">
+  <code>fe_init</code> → <span class="desc">{ model, tools[], cwd }</span><br>
+  <code>fe_assistant_text</code> → <span class="desc">{ text }</span><br>
+  <code>fe_tool_call</code> → <span class="desc">{ toolCallId, tool, filePath?, command?, content?, description }</span><br>
+  <code>fe_tool_result</code> → <span class="desc">{ toolCallId, output }</span><br>
+  <code>fe_file_changed</code> → <span class="desc">{ filePath, action: "write"|"edit"|"delete" }</span><br>
+  <code>fe_result</code> → <span class="desc">{ success, result, numTurns, costUsd }</span><br>
+  <code>session_start</code> → <span class="desc">{ sessionId, prompt, cwd }</span><br>
+  <code>session_end</code> → <span class="desc">{ sessionId, exitCode }</span>
+</div>
 
 <script>
-(function() {
-  const feedScroll = document.getElementById("feedScroll");
-  const emptyState = document.getElementById("emptyState");
-  const promptInput = document.getElementById("promptInput");
-  const sendBtn = document.getElementById("sendBtn");
-  const demoBtn = document.getElementById("demoBtn");
-  const clearBtn = document.getElementById("clearBtn");
-  const connDot = document.getElementById("connDot");
-
-  let toolCounts = {};
-  let totalToolCalls = 0;
-  let totalTurns = 0;
-  let eventCount = 0;
-  let sessionStart = null;
-  let timerInterval = null;
-
-  // WebSocket
-  const proto = location.protocol === "https:" ? "wss:" : "ws:";
-  let ws;
-  function connect() {
-    ws = new WebSocket(`${proto}//${location.host}/ws`);
-    ws.onopen = () => connDot.classList.add("connected");
-    ws.onclose = () => { connDot.classList.remove("connected"); setTimeout(connect, 2000); };
-    ws.onmessage = (e) => {
-      try { handleMessage(JSON.parse(e.data)); } catch {}
-    };
-  }
-  connect();
-
-  function handleMessage(msg) {
-    switch (msg.type) {
-      case "session_start":
-        sessionStart = msg.timestamp;
-        startTimer();
-        addTimelineMarker(`Session started: ${msg.prompt || "..."}`);
-        break;
-      case "session_end":
-        addTimelineMarker(`Session ended (exit ${msg.exitCode})`);
-        stopTimer();
-        break;
-      case "claude_event":
-        handleClaudeEvent(msg.event, msg.timestamp);
-        break;
-      case "stderr":
-        addCard("error", "stderr", msg.text);
-        break;
-      case "raw_output":
-        addCard("system", "raw", msg.text);
-        break;
-    }
-  }
-
-  function handleClaudeEvent(ev, ts) {
-    if (!ev) return;
-
-    // system init
-    if (ev.type === "system" && ev.subtype === "init") {
-      document.getElementById("modelName").textContent = ev.model || "--";
-      document.getElementById("cwdDisplay").textContent = ev.cwd || "--";
-      const toolList = (ev.tools || []).join(", ");
-      addCard("system", "init", `Tools: ${toolList}`);
-      return;
-    }
-
-    // result
-    if (ev.type === "result") {
-      totalTurns = ev.num_turns || totalTurns;
-      document.getElementById("statTurns").textContent = totalTurns;
-      if (ev.total_cost_usd !== undefined) {
-        document.getElementById("statCost").textContent = "$" + ev.total_cost_usd.toFixed(3);
-      }
-      const status = ev.is_error ? "Error" : "Success";
-      addCard("result", status, ev.result || JSON.stringify(ev, null, 2));
-      return;
-    }
-
-    // assistant messages (may contain text + tool_use blocks)
-    if (ev.type === "assistant" && ev.message?.content) {
-      for (const block of ev.message.content) {
-        if (block.type === "text" && block.text) {
-          addCard("text", "Assistant", block.text);
-          totalTurns++;
-          document.getElementById("statTurns").textContent = totalTurns;
-        } else if (block.type === "tool_use") {
-          totalToolCalls++;
-          const name = block.name || "unknown";
-          toolCounts[name] = (toolCounts[name] || 0) + 1;
-          updateStats();
-          const inputStr = formatToolInput(name, block.input);
-          addCard("tool_use", name, inputStr, block.id);
-        }
-      }
-      return;
-    }
-
-    // user messages (tool results)
-    if (ev.type === "user" && ev.message?.content) {
-      const content = ev.message.content;
-      if (Array.isArray(content)) {
-        for (const block of content) {
-          if (block.type === "tool_result") {
-            const text = typeof block.content === "string" ? block.content : JSON.stringify(block.content, null, 2);
-            addCard("result", `Result (${block.tool_use_id || "?"})`, text);
-          }
-        }
-      }
-      return;
-    }
-  }
-
-  function formatToolInput(toolName, input) {
-    if (!input) return "";
-    switch (toolName) {
-      case "Read":    return input.file_path || JSON.stringify(input);
-      case "Write":   return input.file_path || JSON.stringify(input);
-      case "Edit":    return `${input.file_path || "?"}\n  old: ${truncate(input.old_string, 80)}\n  new: ${truncate(input.new_string, 80)}`;
-      case "Bash":    return input.command || JSON.stringify(input);
-      case "Glob":    return input.pattern || JSON.stringify(input);
-      case "Grep":    return `/${input.pattern}/ ${input.path || ""}`;
-      case "Task":    return `[${input.subagent_type}] ${input.description || ""}\n${truncate(input.prompt, 120)}`;
-      default:        return JSON.stringify(input, null, 2);
-    }
-  }
-
-  function truncate(s, n) {
-    if (!s) return "";
-    return s.length > n ? s.slice(0, n) + "..." : s;
-  }
-
-  function updateStats() {
-    document.getElementById("statTools").textContent = totalToolCalls;
-    // Tool breakdown
-    const list = document.getElementById("toolBreakdown");
-    const sorted = Object.entries(toolCounts).sort((a, b) => b[1] - a[1]);
-    list.innerHTML = sorted.map(([name, count]) =>
-      `<li><span class="tool-name">${esc(name)}</span><span class="tool-count">${count}</span></li>`
-    ).join("");
-  }
-
-  function addCard(badgeType, label, body, id) {
-    emptyState.style.display = "none";
-    eventCount++;
-    document.getElementById("eventCount").textContent = eventCount + " events";
-
-    const card = document.createElement("div");
-    card.className = "event-card";
-    if (id) card.dataset.toolUseId = id;
-
-    const badgeClass = `badge-${badgeType}`;
-    const timeStr = new Date().toLocaleTimeString();
-
-    card.innerHTML = `
-      <div class="card-header">
-        <span class="badge ${badgeClass}">${esc(badgeType)}</span>
-        <span>${esc(label)}</span>
-        <span class="ts">${timeStr}</span>
-      </div>
-      <div class="card-body"><pre>${esc(body)}</pre></div>
-    `;
-    feedScroll.appendChild(card);
-    feedScroll.scrollTop = feedScroll.scrollHeight;
-  }
-
-  function addTimelineMarker(text) {
-    emptyState.style.display = "none";
-    const div = document.createElement("div");
-    div.className = "timeline-marker";
-    div.textContent = text;
-    feedScroll.appendChild(div);
-    feedScroll.scrollTop = feedScroll.scrollHeight;
-  }
-
-  function esc(s) {
-    if (!s) return "";
-    const d = document.createElement("div");
-    d.textContent = s;
-    return d.innerHTML;
-  }
-
-  function startTimer() {
-    stopTimer();
-    const start = Date.now();
-    timerInterval = setInterval(() => {
-      const s = Math.floor((Date.now() - start) / 1000);
-      document.getElementById("statTime").textContent = s < 60 ? s + "s" : Math.floor(s / 60) + "m " + (s % 60) + "s";
-    }, 1000);
-  }
-  function stopTimer() {
-    if (timerInterval) clearInterval(timerInterval);
-  }
-
-  // Send prompt
-  sendBtn.addEventListener("click", sendPrompt);
-  promptInput.addEventListener("keydown", (e) => { if (e.key === "Enter") sendPrompt(); });
-
-  function sendPrompt() {
-    const prompt = promptInput.value.trim();
-    if (!prompt) return;
-    promptInput.value = "";
-    fetch("/api/session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt }),
-    }).catch((err) => addCard("error", "Network Error", err.message));
-  }
-
-  // Demo
-  demoBtn.addEventListener("click", () => {
-    fetch("/api/demo", { method: "POST" }).catch((err) => addCard("error", "Error", err.message));
-  });
-
-  // Clear
-  clearBtn.addEventListener("click", () => {
-    feedScroll.innerHTML = "";
-    emptyState.style.display = "";
-    feedScroll.appendChild(emptyState);
-    toolCounts = {};
-    totalToolCalls = 0;
-    totalTurns = 0;
-    eventCount = 0;
-    updateStats();
-    document.getElementById("statTurns").textContent = "0";
-    document.getElementById("statCost").textContent = "$0";
-    document.getElementById("statTime").textContent = "0s";
-    document.getElementById("eventCount").textContent = "0 events";
-    document.getElementById("modelName").textContent = "--";
-    document.getElementById("cwdDisplay").textContent = "--";
-  });
-})();
+  // Quick connection test
+  const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws`);
+  ws.onopen = () => {
+    const el = document.createElement('div');
+    el.style.cssText = 'position:fixed;top:12px;right:12px;padding:6px 12px;background:#3fb95022;border:1px solid #3fb95044;border-radius:6px;color:#3fb950;font-size:12px';
+    el.textContent = 'WebSocket connected';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3000);
+  };
 </script>
 </body>
 </html>
