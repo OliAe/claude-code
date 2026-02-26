@@ -6,7 +6,7 @@ const http = require("http");
 const fs = require("fs");
 
 const PORT = process.env.PORT || 3456;
-const CLAUDE_BIN = process.env.CLAUDE_BIN || "claude";
+const AGENT_BIN = process.env.AGENT_BIN || "claude";
 const PROJECT_DIR = process.env.PROJECT_DIR || path.join(process.cwd(), "workspace");
 
 // Ensure workspace exists
@@ -29,12 +29,12 @@ function broadcast(data) {
   }
 }
 
-// ─── Claude Code subprocess + translation layer ───
+// ─── Agent subprocess + translation layer ───
 
-function spawnClaude(prompt, cwd) {
+function spawnAgent(prompt, cwd) {
   const workDir = cwd || PROJECT_DIR;
   const args = ["--output-format", "stream-json", "--verbose", "-p", prompt];
-  const proc = spawn(CLAUDE_BIN, args, {
+  const proc = spawn(AGENT_BIN, args, {
     cwd: workDir,
     env: { ...process.env, FORCE_COLOR: "0" },
   });
@@ -58,7 +58,7 @@ function spawnClaude(prompt, cwd) {
       try {
         const event = JSON.parse(line);
         // Broadcast raw event
-        broadcast({ type: "claude_event", sessionId, event, timestamp: Date.now() });
+        broadcast({ type: "agent_event", sessionId, event, timestamp: Date.now() });
         // Translate to frontend-friendly events
         translateEvent(sessionId, event, workDir, fileChanges);
       } catch {
@@ -79,7 +79,7 @@ function spawnClaude(prompt, cwd) {
   return sessionId;
 }
 
-// ─── Translation layer: Claude Code events → frontend events ───
+// ─── Translation layer: agent events → frontend events ───
 
 function translateEvent(sessionId, event, workDir, fileChanges) {
   // System init
@@ -321,7 +321,7 @@ app.delete("/api/file", (req, res) => {
 app.post("/api/session", (req, res) => {
   const { prompt, cwd } = req.body;
   if (!prompt) return res.status(400).json({ error: "prompt is required" });
-  const sessionId = spawnClaude(prompt, cwd);
+  const sessionId = spawnAgent(prompt, cwd);
   res.json({ sessionId });
 });
 
@@ -355,7 +355,7 @@ app.post("/api/demo", (_req, res) => {
   broadcast({ type: "session_start", sessionId, prompt: "Build a React counter app", cwd: workDir, timestamp: Date.now() });
 
   const events = [
-    { type: "system", subtype: "init", tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Task"], model: "claude-sonnet-4-20250514", cwd: workDir },
+    { type: "system", subtype: "init", tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Task"], model: "sonnet-4-20250514", cwd: workDir },
     { type: "assistant", message: { content: [{ type: "text", text: "I'll create a React counter application for you. Let me set up the project files." }] } },
     { type: "assistant", message: { content: [{ type: "tool_use", id: "tu_1", name: "Write", input: { file_path: workDir + "/package.json", content: '{\n  "name": "counter-app",\n  "version": "1.0.0",\n  "scripts": {\n    "dev": "vite",\n    "build": "vite build"\n  },\n  "dependencies": {\n    "react": "^18.2.0",\n    "react-dom": "^18.2.0"\n  },\n  "devDependencies": {\n    "vite": "^5.0.0",\n    "@vitejs/plugin-react": "^4.2.0"\n  }\n}' } }] } },
     { type: "user", message: { content: [{ type: "tool_result", tool_use_id: "tu_1", content: "File written successfully." }] } },
@@ -383,7 +383,7 @@ app.post("/api/demo", (_req, res) => {
       return;
     }
     const event = events[i];
-    broadcast({ type: "claude_event", sessionId, event, timestamp: Date.now() });
+    broadcast({ type: "agent_event", sessionId, event, timestamp: Date.now() });
     translateEvent(sessionId, event, workDir, new Map());
     i++;
   }, 900);
@@ -392,6 +392,6 @@ app.post("/api/demo", (_req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Claude Code Studio running at http://localhost:${PORT}`);
+  console.log(`Code Studio running at http://localhost:${PORT}`);
   console.log(`Project directory: ${PROJECT_DIR}`);
 });

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Claude Code Studio — API</title>
+<title>Code Studio — API</title>
 <style>
   body { font-family: system-ui, sans-serif; background: #0d1117; color: #e6edf3; padding: 40px; max-width: 800px; margin: 0 auto; }
   h1 { font-size: 24px; margin-bottom: 8px; }
@@ -21,19 +21,19 @@
 </style>
 </head>
 <body>
-<h1>Claude Code Studio API</h1>
-<p>Backend bridge for connecting a frontend (Bolt, custom, etc.) to Claude Code. All real-time events stream over WebSocket.</p>
+<h1>Code Studio API</h1>
+<p>Backend bridge for connecting a frontend (Bolt, custom, etc.) to agent. All real-time events stream over WebSocket.</p>
 
 <h2>WebSocket</h2>
 <div class="endpoint ws">
   <span class="method post">WS</span> /ws
-  <div class="desc">Real-time event stream. Receives translated Claude Code events: <code>fe_init</code>, <code>fe_assistant_text</code>, <code>fe_tool_call</code>, <code>fe_tool_result</code>, <code>fe_file_changed</code>, <code>fe_result</code>, <code>session_start</code>, <code>session_end</code></div>
+  <div class="desc">Real-time event stream. Receives translated agent events: <code>fe_init</code>, <code>fe_assistant_text</code>, <code>fe_tool_call</code>, <code>fe_tool_result</code>, <code>fe_file_changed</code>, <code>fe_result</code>, <code>session_start</code>, <code>session_end</code></div>
 </div>
 
 <h2>Sessions</h2>
 <div class="endpoint">
   <span class="method post">POST</span> /api/session
-  <div class="desc">Start a Claude Code session. Body: <code>{ "prompt": "...", "cwd": "..." }</code>. Returns <code>{ "sessionId": "..." }</code></div>
+  <div class="desc">Start a agent session. Body: <code>{ "prompt": "...", "cwd": "..." }</code>. Returns <code>{ "sessionId": "..." }</code></div>
 </div>
 <div class="endpoint">
   <span class="method get">GET</span> /api/sessions
@@ -71,7 +71,7 @@
 <h2>Demo</h2>
 <div class="endpoint">
   <span class="method post">POST</span> /api/demo
-  <div class="desc">Run a fake session that replays tool calls for testing without a real Claude binary</div>
+  <div class="desc">Run a fake session that replays tool calls for testing without a real agent binary</div>
 </div>
 
 <h2>WebSocket Event Types</h2>
