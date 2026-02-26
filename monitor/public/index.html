@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Code Studio — API</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #0d1117; color: #e6edf3; padding: 40px; max-width: 800px; margin: 0 auto; }
+  h1 { font-size: 24px; margin-bottom: 8px; }
+  p { color: #8b949e; margin-bottom: 24px; }
+  h2 { font-size: 16px; margin: 24px 0 8px; color: #c084fc; }
+  .endpoint { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px 16px; margin-bottom: 8px; font-family: 'SF Mono', monospace; font-size: 13px; }
+  .method { font-weight: 700; margin-right: 8px; }
+  .method.get { color: #3fb950; }
+  .method.post { color: #58a6ff; }
+  .method.put { color: #d29922; }
+  .method.delete { color: #f85149; }
+  .desc { color: #8b949e; font-family: system-ui; margin-top: 4px; font-size: 12px; }
+  .ws { background: #7c3aed22; border-color: #7c3aed44; }
+  code { background: #1c2129; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+</style>
+</head>
+<body>
+<h1>Code Studio API</h1>
+<p>Backend bridge for connecting a frontend (Bolt, custom, etc.) to agent. All real-time events stream over WebSocket.</p>
+
+<h2>WebSocket</h2>
+<div class="endpoint ws">
+  <span class="method post">WS</span> /ws
+  <div class="desc">Real-time event stream. Receives translated agent events: <code>fe_init</code>, <code>fe_assistant_text</code>, <code>fe_tool_call</code>, <code>fe_tool_result</code>, <code>fe_file_changed</code>, <code>fe_result</code>, <code>session_start</code>, <code>session_end</code></div>
+</div>
+
+<h2>Sessions</h2>
+<div class="endpoint">
+  <span class="method post">POST</span> /api/session
+  <div class="desc">Start a agent session. Body: <code>{ "prompt": "...", "cwd": "..." }</code>. Returns <code>{ "sessionId": "..." }</code></div>
+</div>
+<div class="endpoint">
+  <span class="method get">GET</span> /api/sessions
+  <div class="desc">List active sessions</div>
+</div>
+<div class="endpoint">
+  <span class="method delete">DELETE</span> /api/session/:id
+  <div class="desc">Kill a running session</div>
+</div>
+
+<h2>Files</h2>
+<div class="endpoint">
+  <span class="method get">GET</span> /api/files
+  <div class="desc">Get file tree of the project directory. Query: <code>?path=/custom/dir</code></div>
+</div>
+<div class="endpoint">
+  <span class="method get">GET</span> /api/file?path=src/App.tsx
+  <div class="desc">Read file contents. Returns <code>{ "path": "...", "content": "..." }</code></div>
+</div>
+<div class="endpoint">
+  <span class="method put">PUT</span> /api/file
+  <div class="desc">Write a file. Body: <code>{ "path": "src/App.tsx", "content": "..." }</code></div>
+</div>
+<div class="endpoint">
+  <span class="method delete">DELETE</span> /api/file?path=src/old.ts
+  <div class="desc">Delete a file</div>
+</div>
+
+<h2>Project</h2>
+<div class="endpoint">
+  <span class="method get">GET</span> /api/project
+  <div class="desc">Get project directory info</div>
+</div>
+
+<h2>Demo</h2>
+<div class="endpoint">
+  <span class="method post">POST</span> /api/demo
+  <div class="desc">Run a fake session that replays tool calls for testing without a real agent binary</div>
+</div>
+
+<h2>WebSocket Event Types</h2>
+<div class="endpoint">
+  <code>fe_init</code> → <span class="desc">{ model, tools[], cwd }</span><br>
+  <code>fe_assistant_text</code> → <span class="desc">{ text }</span><br>
+  <code>fe_tool_call</code> → <span class="desc">{ toolCallId, tool, filePath?, command?, content?, description }</span><br>
+  <code>fe_tool_result</code> → <span class="desc">{ toolCallId, output }</span><br>
+  <code>fe_file_changed</code> → <span class="desc">{ filePath, action: "write"|"edit"|"delete" }</span><br>
+  <code>fe_result</code> → <span class="desc">{ success, result, numTurns, costUsd }</span><br>
+  <code>session_start</code> → <span class="desc">{ sessionId, prompt, cwd }</span><br>
+  <code>session_end</code> → <span class="desc">{ sessionId, exitCode }</span>
+</div>
+
+<script>
+  // Quick connection test
+  const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws`);
+  ws.onopen = () => {
+    const el = document.createElement('div');
+    el.style.cssText = 'position:fixed;top:12px;right:12px;padding:6px 12px;background:#3fb95022;border:1px solid #3fb95044;border-radius:6px;color:#3fb950;font-size:12px';
+    el.textContent = 'WebSocket connected';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3000);
+  };
+</script>
+</body>
+</html>
